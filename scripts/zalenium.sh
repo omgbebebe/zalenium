@@ -108,10 +108,10 @@ export -f WaitTestingBotProxy
 
 EnsureCleanEnv()
 {
-    CONTAINERS=$(docker ps -a -f name=zalenium_ -q | wc -l)
+    CONTAINERS=$(docker ps -a -f name=zalenium_${HOSTNAME}_ -q | wc -l)
     if [ ${CONTAINERS} -gt 0 ]; then
         echo "Removing exited docker-selenium containers..."
-        docker rm -f $(docker ps -a -f name=zalenium_ -q)
+        docker rm -f $(docker ps -a -f name=zalenium_${HOSTNAME}_ -q)
     fi
 }
 

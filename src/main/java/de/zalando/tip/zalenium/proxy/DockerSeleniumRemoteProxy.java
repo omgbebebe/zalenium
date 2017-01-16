@@ -46,6 +46,10 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
     static final String ZALENIUM_VIDEO_RECORDING_ENABLED = "ZALENIUM_VIDEO_RECORDING_ENABLED";
     @VisibleForTesting
     static final boolean DEFAULT_VIDEO_RECORDING_ENABLED = true;
+    @VisibleForTesting
+    static final String HOST_CONTAINER_ID = "HOSTNAME";
+    @VisibleForTesting
+    static final String DEFAULT_HOST_CONTAINER_ID = "zalenium";
     private static final Logger LOGGER = Logger.getLogger(DockerSeleniumRemoteProxy.class.getName());
     // Amount of tests that can be executed in the node
     private static final int MAX_UNIQUE_TEST_SESSIONS = 1;
@@ -60,11 +64,14 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
     private boolean stopSessionRequestReceived = false;
     private DockerSeleniumNodePoller dockerSeleniumNodePollerThread = null;
     private GoogleAnalyticsApi ga = new GoogleAnalyticsApi();
+    private static String hostContainerId;
 
     public DockerSeleniumRemoteProxy(RegistrationRequest request, Registry registry) {
         super(request, registry);
         this.amountOfExecutedTests = 0;
         readEnvVarForVideoRecording();
+        String cid = env.getStringEnvVariable(HOST_CONTAINER_ID, DEFAULT_HOST_CONTAINER_ID);
+        setHostContainerId(cid);
     }
 
     @VisibleForTesting
@@ -87,6 +94,10 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
     @VisibleForTesting
     protected static void setEnv(final Environment env) {
         DockerSeleniumRemoteProxy.env = env;
+    }
+    @VisibleForTesting
+    protected static void setHostContainerId(String hostContainerId) {
+        DockerSeleniumRemoteProxy.hostContainerId = hostContainerId;
     }
 
     @VisibleForTesting
@@ -205,7 +216,7 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
     String getContainerId() throws DockerException, InterruptedException {
         List<Container> containerList = dockerClient.listContainers(DockerClient.ListContainersParam.allContainers());
         for (Container container : containerList) {
-            String containerName = "/zalenium_" + getRemoteHost().getPort();
+            String containerName = String.format("/zalenium_%s_%s", hostContainerId, getRemoteHost().getPort());
             if (containerName.equalsIgnoreCase(container.names().get(0))) {
                 return container.id();
             }

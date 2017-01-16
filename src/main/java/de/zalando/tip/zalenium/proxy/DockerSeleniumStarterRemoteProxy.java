@@ -56,6 +56,8 @@ public class DockerSeleniumStarterRemoteProxy extends DefaultRemoteProxy impleme
     @VisibleForTesting
     static final String ZALENIUM_CHROME_CONTAINERS = "ZALENIUM_CHROME_CONTAINERS";
     @VisibleForTesting
+    static final String DEFAULT_CONTAINER_ID = "zalenium";
+    @VisibleForTesting
     static final String ZALENIUM_FIREFOX_CONTAINERS = "ZALENIUM_FIREFOX_CONTAINERS";
     @VisibleForTesting
     static final String ZALENIUM_MAX_DOCKER_SELENIUM_CONTAINERS = "ZALENIUM_MAX_DOCKER_SELENIUM_CONTAINERS";
@@ -65,6 +67,8 @@ public class DockerSeleniumStarterRemoteProxy extends DefaultRemoteProxy impleme
     static final String ZALENIUM_SCREEN_WIDTH = "ZALENIUM_SCREEN_WIDTH";
     @VisibleForTesting
     static final String ZALENIUM_SCREEN_HEIGHT = "ZALENIUM_SCREEN_HEIGHT";
+    @VisibleForTesting
+    static final String CONTAINER_ID = "HOSTNAME";
     @VisibleForTesting
     static final String DOCKER_SELENIUM_CAPABILITIES_URL =
             "https://raw.githubusercontent.com/elgalu/docker-selenium/latest/capabilities.json";
@@ -89,6 +93,7 @@ public class DockerSeleniumStarterRemoteProxy extends DefaultRemoteProxy impleme
     private static int screenHeight;
     private List<Integer> allocatedPorts = new ArrayList<>();
     private boolean setupCompleted;
+    private static String containerId;
 
     @SuppressWarnings("WeakerAccess")
     public DockerSeleniumStarterRemoteProxy(RegistrationRequest request, Registry registry) {
@@ -118,6 +123,9 @@ public class DockerSeleniumStarterRemoteProxy extends DefaultRemoteProxy impleme
 
         String tz = env.getStringEnvVariable(ZALENIUM_TZ, DEFAULT_TZ);
         setTimeZone(tz);
+
+        String cid = env.getStringEnvVariable(CONTAINER_ID, DEFAULT_CONTAINER_ID);
+        setContainerId(cid);
     }
 
     /*
@@ -229,6 +237,14 @@ public class DockerSeleniumStarterRemoteProxy extends DefaultRemoteProxy impleme
     @VisibleForTesting
     protected static void setEnv(final Environment env) {
         DockerSeleniumStarterRemoteProxy.env = env;
+    }
+
+    static void setContainerId(String containerId) {
+        DockerSeleniumStarterRemoteProxy.containerId = containerId;
+    }
+
+    static String getContainerId() {
+        return containerId;
     }
 
     @VisibleForTesting
@@ -378,7 +394,7 @@ public class DockerSeleniumStarterRemoteProxy extends DefaultRemoteProxy impleme
 
             HostConfig hostConfig = HostConfig.builder()
                     .shmSize(1073741824L) // 1GB
-                    .networkMode("container:zalenium")
+                    .networkMode(String.format("container:%s", containerId))
                     .autoRemove(true)
                     .build();
 
@@ -389,7 +405,7 @@ public class DockerSeleniumStarterRemoteProxy extends DefaultRemoteProxy impleme
                         .hostConfig(hostConfig)
                         .build();
 
-                String containerName = String.format("%s_%s", "zalenium", nodePort);
+                String containerName = String.format("zalenium_%s_%s", containerId, nodePort);
                 final ContainerCreation dockerSeleniumContainer = dockerClient.createContainer(containerConfig,
                         containerName);
                 dockerClient.startContainer(dockerSeleniumContainer.id());
